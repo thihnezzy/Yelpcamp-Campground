@@ -1,8 +1,15 @@
+//ORDER OF CRUD IS MATTER !!! TODO:
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
+const methodOverride = require('method-override');
+const Campground = require("./models/campground");
+const campground = require('./models/campground');
+const { urlencoded } = require('express');
+const { log } = require('console');
+const dayjs = require('dayjs');
 const PORT = 3000;
-
+const morgan = require('morgan');
 mongoose.connect('mongodb://localhost:27017/yelp-camp');
 const Schema = mongoose.Schema;
 const db = mongoose.connection;
@@ -13,11 +20,73 @@ db.once("open", () =>{
 
 const app = express();
 
+const requestTime = (req,res,next) =>{
+    req.requestTime = Date.now();
+    return next();
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname,'views'));
 
+app.use(express.json());
+//Enable for using req.body!!!
+app.use(express.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
+
+app.use(morgan('common'));
+app.use(requestTime);
+
+
 app.get('/', (req,res)=>{
-    res.render('homepage');
+    res.render('homepage', {now: req.requestTime});
+})
+
+app.get('/campgrounds',async (req,res)=>{
+    const campgrounds = await Campground.find({});
+    res.render('campgrounds/index', {campgrounds});
+})
+//CREATE ROUTE
+app.get('/campgrounds/new', (req,res)=>{
+    res.render('campgrounds/new');
+})
+
+app.post('/campgrounds', async(req,res)=> {
+    const newCampground = new Campground(req.body.campground);
+    await newCampground.save()
+    // const newCampground = new Campground({data});
+    // await newCampground.save().then(res => console.log(res)).catch(err=> console.log(err));
+    res.redirect(`campgrounds/${newCampground.id}`);
+})
+
+app.get('/campgrounds/:id', async (req,res)=>{
+/**
+ * More simple
+ * const campground = await Campground.findById(req.params.id)
+ */
+    const {id} = req.params;
+    const campgroundDetails = await Campground.findById(id);
+    res.render('campgrounds/show', {campgroundDetails});
+})
+
+//EDIT ROUTE
+app.get('/campgrounds/:id/edit',async (req,res) =>{
+    const {id} = req.params;
+    const campground = await Campground.findById(id);
+    res.render("campgrounds/edit", {campground});
+})
+app.put('/campgrounds/:id', async(req,res)=>{
+    const {id} = req.params;
+    const data = req.body.campground;
+    console.log(id,data);
+    await Campground.findByIdAndUpdate(id,{...data});
+    res.redirect(`/campgrounds/${id}`);
+})
+//DELETE ROUTE
+
+app.delete('/campgrounds/:id', async(req,res) =>{
+    const {id} = req.params;
+    await Campground.findByIdAndDelete(id);
+    res.redirect('/campgrounds');
 })
 
 app.listen(PORT, () => {
