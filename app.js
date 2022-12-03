@@ -2,11 +2,9 @@
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
+const ejsMate = require('ejs-mate');
 const methodOverride = require('method-override');
 const Campground = require("./models/campground");
-const campground = require('./models/campground');
-const { urlencoded } = require('express');
-const { log } = require('console');
 const dayjs = require('dayjs');
 const PORT = 3000;
 const morgan = require('morgan');
@@ -20,11 +18,23 @@ db.once("open", () =>{
 
 const app = express();
 
+
+
 const requestTime = (req,res,next) =>{
-    req.requestTime = Date.now();
+    req.requestTime = dayjs();
     return next();
 }
-
+//NOT REAL AUTHENTICATION
+function verifyPassword (req,res,next) {
+    const {password} = req.query;
+    console.log(password);
+    if (password === "okok"){
+        next();
+    }else{
+        res.send("Sorry, u didnt pass the wall");
+    }
+}
+app.engine('ejs',ejsMate);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname,'views'));
 
@@ -33,8 +43,17 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
 
+
 app.use(morgan('common'));
 app.use(requestTime);
+
+// app.use(verifyPassword);
+
+
+app.get('/secret', verifyPassword,(req,res,next) =>{
+    res.send("ok ok ok");
+})
+
 
 
 app.get('/', (req,res)=>{
@@ -87,6 +106,12 @@ app.delete('/campgrounds/:id', async(req,res) =>{
     const {id} = req.params;
     await Campground.findByIdAndDelete(id);
     res.redirect('/campgrounds');
+})
+
+
+app.use((err,req,res,next) => {
+    console.log("error");
+    next(err);
 })
 
 app.listen(PORT, () => {
