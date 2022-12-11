@@ -13,11 +13,11 @@
                             <p class="card-text"><%=campground.description%></p>
                             <small class="card-text"><%=campground.location%></small>
                         </div>
-                        <a href="./campgrounds/<%=campground.id%>" class="btn btn-primary">View</a>
+                        <a href="./campgrounds/<%=campground.id%>" class="btn btn-primary">View <%= campground.title %></a>
                     </div>
                 </div>
             </div>
         <%}%>
 
 
-    <a href="/campgrounds/new">Create a new campground</a>
+    <a href="/campgrounds/user/new">Create a new campground</a>
